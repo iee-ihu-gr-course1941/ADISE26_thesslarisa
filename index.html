@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Onitama</title>
+<style>
+:root{--bg:#f4efe6;--fg:#2a2118;--cell:#e3d3b4;--cell2:#d6c299;--line:#a58b5c;--red:#c0392b;--blue:#2c5fa8;--hi:#3aa05a;--card:#fffaf0;--mut:#7a6a52;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1d1913;--fg:#efe6d4;--cell:#4a3f2d;--cell2:#3e3526;--line:#6d5c3d;--card:#2b251b;--mut:#a79675;--red:#e0584a;--blue:#5b8fe0;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#1d1913;--fg:#efe6d4;--cell:#4a3f2d;--cell2:#3e3526;--line:#6d5c3d;--card:#2b251b;--mut:#a79675;--red:#e0584a;--blue:#5b8fe0;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;flex-direction:column;align-items:center;padding:12px;min-height:100%}
+h1{margin:4px 0;font-size:22px;letter-spacing:2px}
+#status{min-height:24px;margin:4px 0 8px;font-weight:600;text-align:center}
+.hand{display:flex;gap:8px;justify-content:center}
+.card{background:var(--card);border:2px solid var(--line);border-radius:8px;padding:4px 6px;width:88px;text-align:center;cursor:default;font-size:12px}
+.card.mine{cursor:pointer}
+.card.sel{border-color:var(--hi);box-shadow:0 0 0 2px var(--hi)}
+.card.p0{border-bottom:4px solid var(--red)}.card.p1{border-bottom:4px solid var(--blue)}
+.mg{display:grid;grid-template-columns:repeat(5,13px);grid-auto-rows:13px;gap:1px;justify-content:center;margin-top:3px}
+.mg i{background:var(--cell2);display:block}
+.mg i.c{background:var(--fg);opacity:.6}
+.mg i.on{background:var(--hi)}
+.mid{display:flex;gap:14px;align-items:center;flex-wrap:wrap;justify-content:center;margin:10px 0}
+#board{display:grid;grid-template-columns:repeat(5,1fr);width:min(92vw,400px);aspect-ratio:1;border:3px solid var(--line);border-radius:6px;overflow:hidden}
+.cell{position:relative;display:flex;align-items:center;justify-content:center;background:var(--cell);border:1px solid var(--line);cursor:pointer}
+.cell:nth-child(even){background:var(--cell2)}
+.cell.t::before{content:"⛩";position:absolute;font-size:22px;opacity:.35}
+.cell.sel{outline:3px solid var(--hi);outline-offset:-3px}
+.cell.d::after{content:"";position:absolute;width:30%;height:30%;border-radius:50%;background:var(--hi);opacity:.8}
+.cell.d.cap::after{width:80%;height:80%;background:none;border:4px solid var(--hi)}
+.cell.last{box-shadow:inset 0 0 0 3px #e6b800}
+.pc{width:68%;height:68%;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px;z-index:1;box-shadow:0 2px 3px rgba(0,0,0,.4)}
+.pc.p0{background:var(--red)}.pc.p1{background:var(--blue)}
+.pc.m{width:82%;height:82%;border-radius:30%;font-size:26px;border:3px solid #e6b800}
+.side{text-align:center;font-size:12px;color:var(--mut)}
+button{font:inherit;padding:8px 16px;border-radius:8px;border:2px solid var(--line);background:var(--card);color:var(--fg);cursor:pointer}
+.lbl{font-size:12px;color:var(--mut);margin:2px 0}
+.rules{max-width:420px;font-size:13px;color:var(--mut);margin-top:12px;line-height:1.5}
+</style>
+</head>
+<body>
+<h1>ONITAMA</h1>
+<div id="status"></div>
+<div class="lbl">Αντίπαλος (μπλε)</div>
+<div class="hand" id="h1"></div>
+<div class="mid"><div id="board"></div><div class="side">Επόμενη κάρτα<div id="sd"></div></div></div>
+<div class="hand" id="h0"></div>
+<div class="lbl">Εσύ (κόκκινος)</div>
+<p><button id="nb">Νέο παιχνίδι</button></p>
+<div class="rules">Διάλεξε μια κάρτα και ένα πιόνι· κινήσου όπως δείχνει η κάρτα. Μετά τη κίνηση, η κάρτα που έπαιξες πάει στο πλάι και παίρνεις την «επόμενη κάρτα». Κερδίζεις αν πιάσεις τον Δάσκαλο (♛) του αντιπάλου ή βάλεις τον Δάσκαλό σου στον ναό του (⛩).</div>
+<script>
+const C=[["Τίγρης",[[0,-2],[0,1]]],["Δράκος",[[-2,-1],[2,-1],[-1,1],[1,1]]],["Βάτραχος",[[-2,0],[-1,-1],[1,1]]],["Κουνέλι",[[2,0],[1,-1],[-1,1]]],["Καβούρι",[[-2,0],[2,0],[0,-1]]],["Ελέφαντας",[[-1,0],[1,0],[-1,-1],[1,-1]]],["Χήνα",[[-1,-1],[-1,0],[1,0],[1,1]]],["Κόκορας",[[1,-1],[1,0],[-1,0],[-1,1]]],["Πίθηκος",[[-1,-1],[1,-1],[-1,1],[1,1]]],["Μάντις",[[-1,-1],[1,-1],[0,1]]],["Άλογο",[[0,-1],[-1,0],[0,1]]],["Βόδι",[[0,-1],[1,0],[0,1]]],["Γερανός",[[0,-1],[-1,1],[1,1]]],["Αγριογούρουνο",[[0,-1],[-1,0],[1,0]]],["Χέλι",[[-1,-1],[1,0],[-1,1]]],["Κόμπρα",[[-1,0],[1,-1],[1,1]]]];
+// b: 0 empty,1 P0 student,2 P0 master,3 P1 student,4 P1 master. P0 = human (bottom)
+const own=(v,p)=>v&&((v>2)?1:0)===p;
+function newState(){const ids=[...Array(16).keys()].sort(()=>Math.random()-.5).slice(0,5);
+const b=Array(25).fill(0);for(let c=0;c<5;c++){b[c]=c==2?4:3;b[20+c]=c==2?2:1}
+return{b,h:[[ids[0],ids[1]],[ids[2],ids[3]]],side:ids[4],t:Math.random()<.5?0:1}}
+function gen(s,p){const out=[],sg=p?-1:1;
+for(let i=0;i<25;i++){if(!own(s.b[i],p))continue;const r=i/5|0,c=i%5;
+for(const k of s.h[p])for(const[dx,dy]of C[k][1]){const nr=r+dy*sg,nc=c+dx*sg;if(nr<0||nr>4||nc<0||nc>4)continue;const j=nr*5+nc;if(own(s.b[j],p))continue;out.push({f:i,to:j,k})}}return out}
+function apply(s,m){const b=s.b.slice(),h=[s.h[0].slice(),s.h[1].slice()];b[m.to]=b[m.f];b[m.f]=0;
+const hp=h[s.t],ix=hp.indexOf(m.k);hp[ix]=s.side;return{b,h,side:m.k,t:1-s.t}}
+function winner(s){const b=s.b;if(!b.includes(2))return 1;if(!b.includes(4))return 0;if(b[2]==2)return 0;if(b[22]==4)return 1;return null}
+function ev(s,p){let sc=0;for(let i=0;i<25;i++){const v=s.b[i];if(!v)continue;const r=i/5|0,c=i%5;
+if(v<3){sc+=10+(v==2?0:(4-r)*.5)+(v==2?(4-r)*.8-Math.abs(c-2)*.3:0)}else{sc-=10+(v==4?0:r*.5)+(v==4?r*.8-Math.abs(c-2)*.3:0)}}
+return p?-sc:sc}
+function search(s,d,a,b){const w=winner(s);if(w!==null)return w===s.t?1000+d:-1000-d;if(!d)return ev(s,s.t);
+let best=-Infinity;for(const m of gen(s,s.t)){const v=-search(apply(s,m),d-1,-b,-a);if(v>best)best=v;if(v>a)a=v;if(a>=b)break}return best}
+function aiMove(s){let best=null,bv=-Infinity;const ms=gen(s,1).sort(()=>Math.random()-.5);
+for(const m of ms){const v=-search(apply(s,m),3,-Infinity,Infinity);if(v>bv){bv=v;best=m}}return best}
+
+let S,selP=null,selK=null,last=[],over=false;
+const $=id=>document.getElementById(id);
+function mini(k,p){const sg=p?-1:1;let h='<div class="mg">';const on=new Set(C[k][1].map(([dx,dy])=>(2+dy*sg)*5+2+dx*sg));
+for(let i=0;i<25;i++)h+=`<i class="${i==12?'c':on.has(i)?'on':''}"></i>`;return h+'</div>'}
+function cardEl(k,p,mine){const d=document.createElement('div');d.className=`card p${p}${mine?' mine':''}${mine&&selK===k?' sel':''}`;d.innerHTML=C[k][0]+mini(k,p);if(mine)d.onclick=()=>{if(S.t!==0||over)return;selK=selK===k?null:k;render()};return d}
+function dests(){if(selP==null||selK==null)return[];return gen(S,0).filter(m=>m.f===selP&&m.k===selK)}
+function render(){
+const w=winner(S);over=w!==null;
+$('status').textContent=over?(w===0?'🎉 Κέρδισες!':'Ο αντίπαλος κέρδισε.'):(S.t===0?'Η σειρά σου — διάλεξε κάρτα και πιόνι':'Σκέφτεται ο αντίπαλος…');
+const bd=$('board');bd.innerHTML='';const ds=dests();
+for(let i=0;i<25;i++){const d=document.createElement('div'),v=S.b[i];
+d.className='cell'+((i==2||i==22)?' t':'')+(i===selP?' sel':'')+(last.includes(i)?' last':'');
+const dm=ds.find(m=>m.to===i);if(dm)d.className+=' d'+(v?' cap':'');
+if(v){const p=document.createElement('div');p.className=`pc p${v>2?1:0}${v%2==0?' m':''}`;p.textContent=v%2==0?'♛':'';d.appendChild(p)}
+d.onclick=()=>click(i);bd.appendChild(d)}
+for(const p of[0,1]){const h=$('h'+p);h.innerHTML='';S.h[p].forEach(k=>h.appendChild(cardEl(k,p,p===0)))}
+const sd=$('sd');sd.innerHTML='';sd.appendChild(cardEl(S.side,S.t,false))}
+function click(i){if(over||S.t!==0)return;const v=S.b[i];
+const dm=dests().find(m=>m.to===i);
+if(dm){play(dm);return}
+if(own(v,0)){selP=selP===i?null:i;render()}else{selP=null;render()}}
+function play(m){last=[m.f,m.to];S=apply(S,m);selP=null;selK=null;render();if(!over&&S.t===1)setTimeout(ai,450)}
+function ai(){const m=aiMove(S);if(m)play(m);else{S.t=0;render()}}
+function start(){S=newState();selP=null;selK=null;last=[];render();if(S.t===1)setTimeout(ai,600)}
+$('nb').onclick=start;start();
+</script>
+</body>
+</html>
